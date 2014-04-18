@@ -89,33 +89,32 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 
 - (void) updateConstraints {
     [self removeConstraints:self.constraints];
-    // vertical
-    [self.hueSatImage.edge.top equals:self.edge.top plus:NKOPickerViewDefaultMargin];
-    [self.gradientView.edge.top equals:_hueSatImage.edge.bottom plus:NKOPickerViewGradientTopMargin];
-    [_gradientView.attribute.height equalsToConstant:NKOPickerViewGradientViewHeight];
-    [self.opacityView.edge.top equals:_gradientView.edge.bottom plus:NKOPickerViewGradientTopMargin];
-    [_opacityView.attribute.height equalsToConstant:NKOPickerViewGradientViewHeight];
-    [self.edge.bottom equals:_opacityView.edge.bottom plus:NKOPickerViewDefaultMargin];
 
-    // horizontal
-    [_hueSatImage.edge.left equals:self.edge.left plus:NKOPickerViewDefaultMargin];
-    [self.edge.right equals:_hueSatImage.edge.right plus:NKOPickerViewDefaultMargin];
-    [_gradientView.edge.left equals:_hueSatImage.edge.left];
-    [_gradientView.edge.right equals:_hueSatImage.edge.right];
-    [_opacityView.edge.left equals:_hueSatImage.edge.left];
-    [_opacityView.edge.right equals:_hueSatImage.edge.right];
-
-    // brightness indicator
-    [self.brightnessIndicator.attribute.centerY equals:_gradientView.attribute.centerY];
-    [self.brightnessIndicator.attribute.centerX equals:_gradientView.edge.left plus:_gradientView.width * (1. - _currentBrightness)];
-
-    // alpha
-    [self.alphaIndicator.attribute.centerY equals:_opacityView.attribute.centerY];
-    [self.alphaIndicator.attribute.centerX equals:_opacityView.edge.left plus:_gradientView.width * (1. - _currentAlpha)];
-
-    // cross hair
-    [_crossHairs.attribute.centerX equals:_hueSatImage.attribute.left plus:_hueSatImage.width * _currentHue];
-    [_crossHairs.attribute.centerY equals:_hueSatImage.attribute.top plus:(1. - _currentSaturation) * _hueSatImage.height];
+    [self hueSatImage];
+    [self gradientView];
+    [self opacityView];
+    [self crossHairs];
+    [self brightnessIndicator];
+    [self alphaIndicator];
+    NSNumber *defaultMargin = @(NKOPickerViewDefaultMargin);
+    NSNumber *gradientMargin = @(NKOPickerViewGradientTopMargin);
+    NSNumber *gradientHeight = @(NKOPickerViewGradientViewHeight);
+    NSNumber *bOffset = @(_gradientView.width * (1. - _currentBrightness));
+    NSNumber *aOffset = @(_gradientView.width * (1. - _currentAlpha));
+    NSNumber *hOffset = @(_hueSatImage.width * _currentHue);
+    NSNumber *sOffset = @((1. - _currentSaturation) * _hueSatImage.height);
+    [UIView applyConstraints:@[@"V:|-defaultMargin-[_hueSatImage]-gradientMargin-[_gradientView(gradientHeight)]-gradientMargin-[_opacityView(gradientHeight)]-defaultMargin-|",
+                               @"H:|-defaultMargin-[_hueSatImage]-defaultMargin-|",
+                               @"H:|-defaultMargin-[_gradientView]-defaultMargin-|",
+                               @"H:|-defaultMargin-[_opacityView]-defaultMargin-|",
+                               @"_brightnessIndicator.centerY = _gradientView.centerY",
+                               @"_brightnessIndicator.centerX = _gradientView.left + bOffset",
+                               @"_alphaIndicator.centerY = _opacityView.centerY",
+                               @"_alphaIndicator.centerX = _opacityView.left + aOffset",
+                               @"_crossHairs.centerX = _hueSatImage.left + hOffset",
+                               @"_crossHairs.centerY = _hueSatImage.top + sOffset"]
+                     metrics:NSDictionaryOfVariableBindings(defaultMargin, gradientHeight, gradientMargin, bOffset, aOffset, hOffset, sOffset)
+                       views:NSDictionaryOfVariableBindings(_hueSatImage, _gradientView, _opacityView, _brightnessIndicator, _alphaIndicator, _crossHairs)];
 
     [self updateGradientColor];
     [self updateOpacityColor];
@@ -254,7 +253,7 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 #pragma mark - Lazy loading
 - (NKOBrightnessView *) gradientView {
     if (_gradientView == nil) {
-        _gradientView = [NKOBrightnessView newAutoLayoutView];
+        _gradientView = [[NKOBrightnessView alloc] initWithAutoLayout];
         _gradientView.layer.borderWidth = 1.f;
         _gradientView.layer.cornerRadius = 6.f;
         _gradientView.layer.borderColor = [UIColor houzzRuleColor].CGColor;
@@ -267,7 +266,7 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 
 - (OpacityView *) opacityView {
     if (_opacityView == nil) {
-        _opacityView = [OpacityView newAutoLayoutView];
+        _opacityView = [[OpacityView alloc] initWithAutoLayout];
         _opacityView.layer.borderWidth = 1.f;
         _opacityView.layer.cornerRadius = 6.f;
         _opacityView.layer.borderColor = [UIColor houzzRuleColor].CGColor;
@@ -294,9 +293,12 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 
 - (UIView *) crossHairs {
     if (_crossHairs == nil) {
-        _crossHairs = [UIView newAutoLayoutView];
-        [_crossHairs.attribute.height equalsToConstant:NKOPickerViewCrossHairshWidthAndHeight];
-        [_crossHairs.attribute.width equalsToConstant:NKOPickerViewCrossHairshWidthAndHeight];
+        _crossHairs = [[UIView alloc] initWithAutoLayout];
+        NSNumber *dim = @(NKOPickerViewCrossHairshWidthAndHeight);
+        [UIView applyConstraints:@[@"_crossHairs.height = dim",
+                                   @"_crossHairs.width = dim"]
+                         metrics:NSDictionaryOfVariableBindings(dim)
+                           views:NSDictionaryOfVariableBindings(_crossHairs)];
 
         UIColor *edgeColor = [UIColor colorWithWhite:0.9 alpha:0.8];
 
@@ -315,7 +317,7 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 
 - (UIImageView *) brightnessIndicator {
     if (_brightnessIndicator == nil) {
-        _brightnessIndicator = [UIImageView newAutoLayoutView];
+        _brightnessIndicator = [[UIImageView alloc] initWithAutoLayout];
         _brightnessIndicator.image = [[UIImage imageNamed:@"nko_brightness_guide"] nko_tintImageWithColor:[UIColor houzzDarkTextColor]];
         _brightnessIndicator.backgroundColor = [UIColor clearColor];
         [self insertSubview:_brightnessIndicator aboveSubview:self.gradientView];
@@ -326,7 +328,7 @@ CGFloat const NKOPickerViewCrossHairshWidthAndHeight = 38.f;
 
 - (UIImageView *) alphaIndicator {
     if (_alphaIndicator == nil) {
-        _alphaIndicator = [UIImageView newAutoLayoutView];
+        _alphaIndicator = [[UIImageView alloc] initWithAutoLayout];
         _alphaIndicator.image = [[UIImage imageNamed:@"nko_brightness_guide"] nko_tintImageWithColor:[UIColor houzzDarkTextColor]];
         _alphaIndicator.backgroundColor = [UIColor clearColor];
         [self insertSubview:_alphaIndicator aboveSubview:self.opacityView];
